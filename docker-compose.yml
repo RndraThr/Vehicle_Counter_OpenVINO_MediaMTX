@@ -1,0 +1,83 @@
+services:
+  mediamtx:
+    image: bluenviron/mediamtx:latest
+    container_name: vehicle_counter_mediamtx
+    ports:
+      - "8554:8554"
+      - "8888:8888"
+      - "8889:8889"
+      - "8890:8890"
+      - "9997:9997"
+    volumes:
+      - ./mediamtx.yml:/mediamtx.yml:ro
+    restart: unless-stopped
+    networks:
+      - vehicle_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  vehicle-counter:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: vehicle_counter_app
+    depends_on:
+      - mediamtx
+    volumes:
+      - ./input:/app/input:ro
+      - ./app/model:/app/model:rw
+      - logs_data:/app/logs:rw
+    environment:
+      - PYTHONUNBUFFERED=1
+      - OPENCV_LOG_LEVEL=ERROR
+      - MEDIAMTX_HOST=mediamtx
+      - MEDIAMTX_PORT=8554
+      - STREAM_PATH=live
+      - PYTHONPATH=/app
+      - MODEL_PATH=/app/model/vehicle-detection-adas-0002.xml
+      - MODEL_DIR=/app/model
+    working_dir: /app
+    restart: unless-stopped
+    networks:
+      - vehicle_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+
+  dashboard:
+    image: python:3.9-alpine
+    container_name: vehicle_counter_dashboard
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./dashboard:/app:ro
+    depends_on:
+      - mediamtx
+      - vehicle-counter
+    restart: unless-stopped
+    networks:
+      - vehicle_network
+    working_dir: /app
+    command: python3 -m http.server 8080
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  vehicle_network:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.20.0.0/16
+
+volumes:
+  logs_data:
+    driver: local
