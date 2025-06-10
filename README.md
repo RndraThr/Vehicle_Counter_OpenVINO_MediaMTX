@@ -13,7 +13,7 @@ Repositori ini berisi sistem pendeteksi dan penghitung kendaraan real-time berba
 - Dirancang untuk berjalan sepenuhnya di CPU (tanpa GPU).
 
 ## Video Hasil Demo
-
+Video Demo: https://jam.dev/c/9a1f036c-be8c-467a-8343-89426cf928c8
 
 ## Persiapan Awal
 
